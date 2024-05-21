@@ -1,0 +1,6 @@
+pydantic = "^2.6.4"
+pyarrow = "^16.0.0"
+datasets = "^2.19.0"
+requests = ">=2.19.0"
+pandas = "*"
+tqdm = ">=4.62.1"
