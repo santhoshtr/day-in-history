@@ -7,6 +7,8 @@ from datasets import Dataset
 from pydantic import BaseModel
 from tqdm import tqdm
 
+language = "en"
+
 
 class Event(BaseModel):
     year: int
@@ -42,7 +44,7 @@ def parse_year(year):
 
 def get_events(month, day):
     events = []
-    url = f"https://en.wikipedia.org/api/rest_v1/page/html/{month}_{day}"
+    url = f"https://{language}.wikipedia.org/api/rest_v1/page/html/{month}_{day}"
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
@@ -73,11 +75,18 @@ def get_events(month, day):
             continue
 
         # remove the year from the event description html
-        link = event_el.find("a[typeof='mw:WikiLink']")
+        link = event_el.find("a[rel='mw:WikiLink']")
         if link:
             link.decompose()
         else:
             no_link = True
+
+        for link in event_el.select("a[rel='mw:WikiLink']"):
+            # change links to absolute links
+            if link.get("href").startswith("./"):
+                link["href"] = (
+                    f"https://{language}.wikipedia.org/wiki/{link['href'].replace('./', '')}"
+                )
 
         entity = event_el.select("span[typeof='mw:Entity']")
         if entity:
@@ -85,18 +94,27 @@ def get_events(month, day):
         else:
             no_entity = True
 
-        event_description = event_el.decode_contents().split(f"{year}")[-1].strip()
-        if no_entity:
-            event_description = event_description.split("–")[-1]
-            event_description = event_description.split("-")[-1]
-
         ref_el = event_el.select("sup[typeof='mw:Extension/ref']")
         reference = None
         if ref_el:
             ref_note_id = ref_el[0].attrs.get("id").replace("_ref", "_note")
             ref_note_el = soup.select("li[id='" + ref_note_id + "'] .mw-reference-text")
             if ref_note_el:
+                style_el = ref_note_el[0].select("style")
+                if style_el:
+                    style_el[0].decompose()
+                link_el = ref_note_el[0].select("link")
+                if link_el:
+                    link_el[0].decompose()
                 reference = str(ref_note_el[0])
+            ref_el[0].decompose()
+
+        event_description = event_el.decode_contents().split(f"{year}")[-1].strip()
+        if event_description.startswith("</a>"):
+            event_description = event_description.replace("</a>", "", 1)
+        if no_entity:
+            event_description = event_description.split("–")[-1]
+            event_description = event_description.split("-")[-1]
 
         events.append(
             Event(
