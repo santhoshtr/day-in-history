@@ -8,4 +8,4 @@ Historic events are mapped against each date with reference if available.
 
 https://huggingface.co/datasets/santhosh/day_in_history
 
-Here is a demo app using this dataset: https://huggingface.co/spaces/santhosh/day_in_history
+Here is a demo app using this dataset:  [https://todayinhistory.toolforge.org/](https://todayinhistory.toolforge.org/)
